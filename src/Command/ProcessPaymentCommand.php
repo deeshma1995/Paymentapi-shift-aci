@@ -11,10 +11,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
-
+/**
+ * Command to process a payment using either the Shift4 or ACI payment provider.
+ */
 #[AsCommand(name: 'app:example')]
 class ProcessPaymentCommand extends Command
 {
+     /**
+     * Constructor to inject dependencies.
+     *
+     * @param Shift4ClientManager $shift4ClientManager Handles Shift4 payment processing.
+     * @param ACIClientManager $aciClientManager Handles ACI payment processing.
+     * @param LoggerInterface $logger Logs errors and debugging information.
+     */
+
     public function __construct(
         private readonly Shift4IntegrationManager $shift4IntegrationManager,
         private readonly ACIIntegrationManager $aciIntegrationManager,
@@ -22,6 +32,9 @@ class ProcessPaymentCommand extends Command
     ){
         parent::__construct();
     }
+    /**
+     * Configures the command's arguments and description.
+     */
 
     protected function configure(): void
     {
@@ -37,6 +50,15 @@ class ProcessPaymentCommand extends Command
             ->addArgument('cardholderName', InputArgument::REQUIRED, 'Cardholder name');
     }
 
+     /**
+     * Executes the command to process the payment.
+     *
+     * @param InputInterface $input Handles user input.
+     * @param OutputInterface $output Outputs feedback to the user.
+     *
+     * @return int Returns SUCCESS if the payment is processed, or FAILURE if an error occurs.
+     */
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
@@ -50,6 +72,8 @@ class ProcessPaymentCommand extends Command
         $cardholderName = $input->getArgument('cardholderName');
 
         try {
+            // Match the provider and process the payment accordingly.
+
             $response = match ($provider) {
                 'shift4' => $this->shift4IntegrationManager->processPayment(
                     (int )$amount, $currency, $cardNumber, $expMonth, $expYear, $cvv, $cardholderName

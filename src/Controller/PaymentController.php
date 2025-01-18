@@ -13,19 +13,30 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * PaymentController handles payment requests and integrates with payment providers.
+ */
 class PaymentController extends AbstractController
 {
+    /**
+     * Constructor injects dependencies for payment providers, validation, and logging.
+     */
     public function __construct(
         private readonly Shift4IntegrationManager $shift4IntegrationManager,
         private readonly ACIIntegrationManager $aciIntegrationManager,
         private readonly ValidatorInterface $validator,
         private readonly LoggerInterface $logger
     ) { }
-
+/**
+     * Handles a payment request for a specified provider.
+     */
     #[Route('/app/example/{provider}', name: 'payment')]
     public function sendPaymentRequest(Request $request, string $provider): JsonResponse
     {
+        // Extract and map the request payload into a data transfer object (DTO).
+
         $paymentData = new PaymentRequestDT($request->getPayload());
+        // Validate the payment data using Symfony's Validator component.
 
         $errors = $this->validator->validate($paymentData);
         if (count($errors) > 0) {
@@ -37,6 +48,8 @@ class PaymentController extends AbstractController
         }
 
         try {
+            // Determine the integration manager based on the provided payment provider.
+
             $integrationManager = match ($provider) {
                 'shift4' => $this->shift4IntegrationManager,
                 'aci' => $this->aciIntegrationManager,
@@ -44,6 +57,8 @@ class PaymentController extends AbstractController
             };
 
             $paymentService = new PaymentService($integrationManager);
+            // Process the payment using the payment service.
+
             $response = $paymentService->processPayment(
                 $paymentData->amount,
                 $paymentData->currency,

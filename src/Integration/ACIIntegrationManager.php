@@ -8,8 +8,20 @@ use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
+/**
+ * ACIIntegrationManager handles payment processing using the ACI integration.
+ */
+
 class ACIIntegrationManager implements PaymentIntegrationInterface
 {
+      /**
+     * Constructor to inject required dependencies.
+     *
+     * @param HttpClientInterface $client The HTTP client to make API requests.
+     * @param LoggerInterface $logger Logger to record errors and debug information.
+     * @param string $token Authorization token for ACI API.
+     */
+
     public function __construct(
         private readonly HttpClientInterface $client,
         private readonly LoggerInterface $logger,
@@ -25,6 +37,8 @@ class ACIIntegrationManager implements PaymentIntegrationInterface
         string $cardCvv,
         string $cardholderName
     ): TransactionDataTransfer {
+    // The ACI payment API endpoint.
+
         $aciPaymentEndpoint = 'https://eu-test.oppwa.com/v1/payments';
 
         $data = http_build_query([
@@ -39,8 +53,10 @@ class ACIIntegrationManager implements PaymentIntegrationInterface
             'card.expiryYear' => $cardExpYear,
             'card.cvv' => $cardCvv,
         ]);
+        // Send the request and handle the response.
 
         $response = $this->createRequest($aciPaymentEndpoint, $data);
+        // Map the API response to a TransactionDataTransfer object.
 
         return new TransactionDataTransfer(
             $response['id'] ?? '',
@@ -52,6 +68,8 @@ class ACIIntegrationManager implements PaymentIntegrationInterface
 
     private function createRequest(string $endpoint, string $data): array
     {
+        // Send the request with headers and body.
+
         try {
             $response = $this->client->request('POST', $endpoint, [
                 'headers' => [
@@ -61,6 +79,7 @@ class ACIIntegrationManager implements PaymentIntegrationInterface
                 'body' => $data,
             ]);
 
+            // Decode the JSON response into an associative array.
 
             return json_decode($response->getContent(), true) ?? [];
         } catch (ClientExceptionInterface $e) {
